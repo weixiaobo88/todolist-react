@@ -4,6 +4,7 @@ import TodoList from "../components/TodoList";
 import { INIT_TODOS } from "../constants/constants";
 import update from "immutability-helper";
 import TodoForm from "../components/TodoForm";
+import TodoListAPI from "../shared/apis/TodoListAPI";
 
 class TodoContainer extends Component {
   constructor(props) {
@@ -18,6 +19,17 @@ class TodoContainer extends Component {
     };
   }
 
+  componentDidMount() {
+    TodoListAPI.getAllTodos().then((response) => {
+      const todos = response.data.map((todo) => ({
+        index: parseInt(todo.id),
+        value: todo.content,
+        done: todo.status,
+      }));
+      this.setState({ todoList: todos });
+    });
+  }
+
   onMarkDone(index) {
     const { todoList } = this.state;
     const todo = todoList[index];
@@ -28,14 +40,19 @@ class TodoContainer extends Component {
     this.setState({
       todoList: updatedTodoList,
     });
+    
+    TodoListAPI.updateTodoById(index);
   }
 
   onDelete(index) {
     const { todoList } = this.state;
-    const updatedTodoList = update(todoList, { $splice: [[index, 1]] });
 
-    this.setState({
-      todoList: updatedTodoList,
+    TodoListAPI.deleteTodoById(index).then(() => {
+      const updatedTodoList = update(todoList, { $splice: [[index, 1]] });
+
+      this.setState({
+        todoList: updatedTodoList,
+      });
     });
   }
 
@@ -43,16 +60,20 @@ class TodoContainer extends Component {
     const { todoList } = this.state;
 
     const updatedTodoList = update(todoList, {
-      $push: [{
-        index: todoList.length,
-        value: todoValue,
-        done: false,
-      }],
+      $push: [
+        {
+          index: todoList.length,
+          value: todoValue,
+          done: false,
+        },
+      ],
     });
-    
+
     this.setState({
       todoList: updatedTodoList,
     });
+
+    // TodoListAPI.createTodo({ content: todoValue, status: false });
   }
 
   render() {
